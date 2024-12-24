@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WhatsApp y CSV</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.2/papaparse.min.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+            margin: 20px;
+        }
+        img {
+            width: 200px;
+            margin-bottom: 20px;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+        th, td {
+            border: 1px solid #ccc;
+            padding: 10px;
+            text-align: left;
+        }
+        th {
+            background-color: #f4f4f4;
+        }
+        button:disabled {
+            background-color: #ccc;
+            cursor: not-allowed;
+        }
+    </style>
+</head>
+<body>
+    <img src="logo-final.jpg" alt="Logo de la Empresa">
+
+    <h1>Enviar Mensaje por WhatsApp</h1>
+
+    <!-- CSV Upload Section -->
+    <label for="csvInput">Selecciona el archivo CSV:</label>
+    <input type="file" id="csvInput" accept=".csv" />
+    <div id="tableContainer"></div>
+
+    <hr>
+
+    <!-- WhatsApp Sending Section -->
+    <button id="sendWhatsApp" disabled>Enviar Mensaje</button>
+
+    <script>
+        let csvData = []; // Para almacenar los datos del CSV
+
+        // Procesar y mostrar contenido CSV
+        function processCSV(csvContent) {
+            Papa.parse(csvContent, {
+                complete: function(results) {
+                    csvData = results.data;
+
+                    const tableContainer = document.getElementById('tableContainer');
+                    tableContainer.innerHTML = ""; // Limpiar contenido previo
+
+                    // Crear tabla para mostrar datos
+                    const table = document.createElement('table');
+
+                    // Agregar cabeceras
+                    const headerRow = document.createElement('tr');
+                    csvData[0].forEach((header) => {
+                        const th = document.createElement('th');
+                        th.textContent = header;
+                        headerRow.appendChild(th);
+                    });
+
+                    // Agregar cabeceras personalizadas
+                    const selectHeader = document.createElement('th');
+                    selectHeader.textContent = "Seleccionar";
+                    headerRow.appendChild(selectHeader);
+
+                    const quantityHeader = document.createElement('th');
+                    quantityHeader.textContent = "Cantidad";
+                    headerRow.appendChild(quantityHeader);
+
+                    table.appendChild(headerRow);
+
+                    // Agregar filas
+                    csvData.slice(1).forEach((row) => {
+                        const tr = document.createElement('tr');
+                        row.forEach((cell) => {
+                            const td = document.createElement('td');
+                            td.textContent = cell;
+                            tr.appendChild(td);
+                        });
+
+                        // Columna "Seleccionar"
+                        const selectCell = document.createElement('td');
+                        const checkbox = document.createElement('input');
+                        checkbox.type = "checkbox";
+                        selectCell.appendChild(checkbox);
+                        tr.appendChild(selectCell);
+
+                        // Columna "Cantidad"
+                        const quantityCell = document.createElement('td');
+                        const quantityInput = document.createElement('input');
+                        quantityInput.type = "text";
+                        quantityInput.maxLength = 50;
+                        quantityCell.appendChild(quantityInput);
+                        tr.appendChild(quantityCell);
+
+                        table.appendChild(tr);
+                    });
+
+                    tableContainer.appendChild(table);
+
+                    // Habilitar botón de WhatsApp
+                    document.getElementById('sendWhatsApp').disabled = false;
+                },
+                error: function(error) {
+                    alert('Error al procesar el archivo: ' + error.message);
+                },
+            });
+        }
+
+        // Manejar selección del archivo
+        document.getElementById('csvInput').addEventListener('change', function(event) {
+            const csvFile = event.target.files[0];
+
+            if (csvFile) {
+                const reader = new FileReader();
+
+                reader.onload = function(e) {
+                    processCSV(e.target.result);
+                };
+
+                reader.readAsText(csvFile, 'UTF-8');
+            } else {
+                alert('Por favor, selecciona un archivo CSV.');
+            }
+        });
+
+        // Enviar mensaje de WhatsApp
+        document.getElementById('sendWhatsApp').addEventListener('click', function() {
+            const tableRows = document.querySelectorAll('#tableContainer table tr');
+            const selectedItems = [];
+
+            // Recorrer las filas de la tabla
+            tableRows.forEach((row, index) => {
+                if (index === 0) return; // Saltar cabecera
+
+                const checkbox = row.querySelector('input[type="checkbox"]');
+                const quantityInput = row.querySelector('input[type="text"]');
+
+                if (checkbox.checked) {
+                    const itemName = Array.from(row.cells)
+                        .slice(0, -2) // Excluir las dos últimas columnas
+                        .map((cell) => cell.textContent.trim())
+                        .join(" ");
+                    const quantity = quantityInput.value.trim() || "Sin cantidad";
+
+                    selectedItems.push(`${itemName} - Cantidad: ${quantity}`);
+                }
+            });
+
+            if (selectedItems.length === 0) {
+                alert("Por favor, selecciona al menos un ítem para enviar.");
+                return;
+            }
+
+            const message = `Hola, aquí están los ítems seleccionados:\n\n${selectedItems.join("\n")}`;
+            const whatsappURL = `https://wa.me/5493400658258?text=${encodeURIComponent(message)}`;
+            window.open(whatsappURL, '_blank');
+        });
+    </script>
+</body>
+</html>
